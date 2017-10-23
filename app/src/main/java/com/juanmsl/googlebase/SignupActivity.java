@@ -9,8 +9,10 @@ import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.design.widget.TextInputEditText;
 import android.support.design.widget.TextInputLayout;
+import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -27,6 +29,7 @@ import com.juanmsl.googlebase.logic.Utils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 
 public class SignupActivity extends AppCompatActivity {
@@ -52,7 +55,6 @@ public class SignupActivity extends AppCompatActivity {
     private Uri imageUri;
 
     private Intent galleryIntent;
-    private Intent cameraIntent;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,55 +88,55 @@ public class SignupActivity extends AppCompatActivity {
 
         galleryIntent = new Intent(Intent.ACTION_PICK);
         galleryIntent.setType("image/*");
-        cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
 
         btnSignup.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                signupAction(v);
+                signupAction();
             }
         });
 
         btnCamera.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                cameraAction(v);
+                cameraAction();
             }
         });
 
         btnGallery.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                galleryAction(v);
+                galleryAction();
             }
         });
     }
 
-    private void galleryAction(View v) {
+    private void galleryAction() {
         if(Permissions.askPermission(this, Permissions.READ_EXTERNAL_STORAGE, "Debes conceder los permisos para poder acceder a la galeria")) {
             startActivityForResult(galleryIntent, GALLERY_INTENT);
         }
     }
 
-    private void cameraAction(View v) {
+    private void cameraAction() {
         if(Permissions.askPermission(this, Permissions.CAMERA, "Debes conceder los permisos para poder acceder a la camara")) {
-            startActivityForResult(cameraIntent, CAMERA_INTENT);
+            if(Permissions.askPermission(this, Permissions.WRITE_EXTERNAL_STORAGE, "Dejanos guardar tus fotos")) {
+                Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                File photoFile = null;
+                try {
+                    photoFile = Utils.createImageFile(this);
+                } catch (IOException ex) { }
+
+                if(photoFile != null) {
+                    imageUri = FileProvider.getUriForFile(this, "com.juanmsl.googlebase.fileprovider", photoFile);
+                    Log.i("Image", imageUri.toString());
+                    cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
+                    startActivityForResult(cameraIntent, CAMERA_INTENT);
+                }
+            }
         }
     }
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-        //firebaseAuthentication.start();
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        firebaseAuthentication.stop();
-    }
-
-    protected void signupAction(View v) {
+    protected void signupAction() {
         boolean validFields = true;
         String name = nameInput.getText().toString();
         String surname = surnameInput.getText().toString();
@@ -182,31 +184,31 @@ public class SignupActivity extends AppCompatActivity {
         }
         switch (requestCode) {
             case Permissions.CAMERA:
-                cameraAction(null);
+                cameraAction();
                 break;
             case Permissions.READ_EXTERNAL_STORAGE:
-                galleryAction(null);
+                galleryAction();
                 break;
         }
     }
 
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
+        if(resultCode != RESULT_OK) {
+            return;
+        }
         switch(requestCode) {
             case GALLERY_INTENT:
-                if(resultCode == RESULT_OK){
-                    this.imageUri = data.getData();
-                    Bitmap selectedImage = Utils.getImageFormUri(this, imageUri);
-                    photo.setImageBitmap(Utils.cropImage(selectedImage));
-
-                }
+                this.imageUri = data.getData();
+                Bitmap selectedImage = Utils.getImageFormUri(this, imageUri);
+                photo.setImageBitmap(Utils.cropImage(selectedImage));
                 break;
             case CAMERA_INTENT:
-                if(resultCode == RESULT_OK) {
-                    imageUri = data.getData();
-                    Bundle extras = data.getExtras();
-                    Bitmap imageBitmap = (Bitmap) extras.get("data");
-                    photo.setImageBitmap(Utils.cropImage(imageBitmap));
+                try {
+                    Bitmap image = Utils.getImageFormUri(this, imageUri);
+                    Bitmap imageBitmap = Utils.cropImage(image);
+                    photo.setImageBitmap(imageBitmap);
+                } catch(Exception e) {
+                    e.printStackTrace();
                 }
                 break;
         }

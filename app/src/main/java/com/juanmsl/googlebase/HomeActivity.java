@@ -91,17 +91,19 @@ public class HomeActivity extends AppCompatActivity implements OnMapReadyCallbac
         locationController =  new LocationController(this) {
             @Override
             public void onMyLocationRecieved(Location location) {
+                googleMap.clear();
                 double distance = Utils.distance(location.getLatitude(), location.getLongitude(), place.getLatLng().latitude, place.getLatLng().longitude);
                 addMarker(location, "Tu estas aquí", null);
                 addMarker(place.getLatLng(), place.getAddress().toString(), "Distancia: " + distance + " km");
+                Utils.drawPathBetween(new LatLng(location.getLatitude(), location.getLongitude()), place.getLatLng(), googleMap);
                 Snackbar.make(HomeActivity.this.getCurrentFocus(), "Distancia a la que te encuentras: " + distance + " km", Snackbar.LENGTH_LONG).show();
 
                 CameraPosition.Builder cameraPosition = CameraPosition.builder();
                 cameraPosition.target(place.getLatLng());
-                cameraPosition.zoom(Maps.ZOOM_STREET);
+                cameraPosition.zoom(Maps.ZOOM_PATH);
                 cameraPosition.bearing(0);
 
-                googleMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition.build()), 3000, null);
+                googleMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition.build()), 1500, null);
             }
         };
         mainIntent = new Intent(this, MainActivity.class);
