@@ -7,6 +7,7 @@ import android.media.Image;
 import android.net.Uri;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
+import android.support.design.widget.Snackbar;
 import android.support.design.widget.TextInputEditText;
 import android.support.design.widget.TextInputLayout;
 import android.support.v4.content.FileProvider;
@@ -65,6 +66,7 @@ public class SignupActivity extends AppCompatActivity {
             @Override
             public void onSuccess() {
                 startActivity(homeIntent);
+                btnSignup.setEnabled(true);
             }
         };
         homeIntent = new Intent(this, HomeActivity.class);
@@ -173,6 +175,8 @@ public class SignupActivity extends AppCompatActivity {
         }
 
         if(validFields) {
+            btnSignup.setEnabled(false);
+            Snackbar.make(this.getCurrentFocus(), "Registrando... Porfavor espere", Snackbar.LENGTH_INDEFINITE).show();
             firebaseAuthentication.createUserWithEmailAndPassword(email, password, name + " " + surname, imageUri);
         }
     }

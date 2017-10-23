@@ -87,7 +87,6 @@ public abstract class FBAuth {
                     @Override
                     public void onComplete(@NonNull Task<Void> task) {
                         if(task.isSuccessful()) {
-                            Snackbar.make(activity.getCurrentFocus(), "Registrando... Porfavor espere", Snackbar.LENGTH_INDEFINITE).show();
                             uploadFile(image, email);
                         } else {
                             Snackbar.make(activity.getCurrentFocus(), task.getException().getMessage(), Snackbar.LENGTH_LONG).show();
